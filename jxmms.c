@@ -103,10 +103,10 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 	*plugin_desc = PDESC;
 	*plugin_version = PVERSION;
 
-	xchat_hook_command(ph, "xmms", XCHAT_PRI_NORM, get_song,"Usage: xmms", 0);
-	xchat_hook_command(ph, "xmms-playpause", XCHAT_PRI_NORM, play_pause, "Usage: xmms-playpause", 0);
-	xchat_hook_command(ph, "xmms-next", XCHAT_PRI_NORM, xmms_next, "Usage: xmms-next", 0);
-	xchat_hook_command(ph, "xmms-prev", XCHAT_PRI_NORM, xmms_prev, "Usage: xmms-prev", 0);
+	xchat_hook_command(ph, "xmms", XCHAT_PRI_NORM, get_song,"Usage: xmms - Displays song information as a /ME ", 0);
+	xchat_hook_command(ph, "xmms-playpause", XCHAT_PRI_NORM, play_pause, "Usage: xmms-playpause - Plays or pauses Xmms", 0);
+	xchat_hook_command(ph, "xmms-next", XCHAT_PRI_NORM, xmms_next, "Usage: xmms-next - Moves to the next song", 0);
+	xchat_hook_command(ph, "xmms-prev", XCHAT_PRI_NORM, xmms_prev, "Usage: xmms-prev - Moves to the previous song", 0);
 	
 	char msg[200];
 	sprintf(msg, "\003%d[\003%d\002Jaguar-XMMS Now Playing Script v.%s\017\003%d]\003%d by \003%d\002 Jaguar\017 \003%dloaded successfully!", color_b2, color_title, PVERSION, color_b2, color_text, color_info, color_text);
@@ -121,18 +121,6 @@ void xchat_plugin_get_info(char **name, char **desc, char **version, void **rese
    *name = PNAME;
    *desc = PDESC;
    *version = PVERSION;
-}
-
-int main (void) {
-
-	int session=0;
-
-	if (!xmms_remote_is_running(session)) { 
-		printf("Xmms is not running, exiting..\n");
-		return 0;
-	}
-	
-	return 1;
 }
 
 int get_version(session) {

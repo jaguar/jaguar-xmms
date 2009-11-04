@@ -1,16 +1,86 @@
-#include <glib.h>
+#include "xchat-plugin.h"
 #include "xmmsctrl.h"
+#include <glib.h>
 #include <stdio.h>
 #include <strings.h>
 #include <string.h>
-#include <sys/stat.h> /* struct */
+#include <sys/stat.h> 
 
 int get_song();
 int get_version();
 
+int session = 0;
+
 char* convert_rate(int rate, char* ratestr);
 char* convert_time(int session, int pos, char* timestr); 
 char* convert_milliseconds(int time, char* timestr); 
+
+static xchat_plugin *ph;   /* plugin handle */
+
+#define PNAME "jaguar-xmms"
+#define PDESC "XMMS Now Playing Script"
+#define PVERSION "0.1"
+
+int color_b1 = 0;
+int color_b2 = 0;
+int color_info = 4;
+int color_title = 4;
+int color_sep = 14;
+int color_text = 0;
+int color_bar1 = 0;
+int color_bar2 = 4;
+int color_bar3 = 0;
+
+
+int play_pause(char *word[], char *word_eol[], void *userdata) {
+	xmms_remote_play_pause(session);
+	return XCHAT_EAT_ALL;
+}
+
+int xmms_next(char *word[], char *word_eol[], void *userdata) {
+	xmms_remote_playlist_next(session);
+	return XCHAT_EAT_ALL;
+}
+
+int xmms_prev(char *word[], char *word_eol[], void *userdata) {
+	xmms_remote_playlist_prev(session);
+	return XCHAT_EAT_ALL;
+}
+
+
+
+int xchat_plugin_init(xchat_plugin *plugin_handle,
+                      char **plugin_name,
+                      char **plugin_desc,
+                      char **plugin_version,
+                      char *arg)
+{
+	/* we need to save this for use with any xchat_* functions */
+	ph = plugin_handle;
+	/* tell xchat our info */
+	*plugin_name = PNAME;
+	*plugin_desc = PDESC;
+	*plugin_version = PVERSION;
+
+	xchat_hook_command(ph, "xmms", XCHAT_PRI_NORM, get_song,"Usage: xmms", 0);
+	xchat_hook_command(ph, "xmms-playpause", XCHAT_PRI_NORM, play_pause, "Usage: xmms-playpause", 0);
+	xchat_hook_command(ph, "xmms-next", XCHAT_PRI_NORM, xmms_next, "Usage: xmms-next", 0);
+	xchat_hook_command(ph, "xmms-prev", XCHAT_PRI_NORM, xmms_prev, "Usage: xmms-prev", 0);
+	
+	// xchat_hook_print(ph, "Join", XCHAT_PRI_NORM, join_cb, 0);
+	char msg[200];
+	sprintf(msg, "\003%d[\003%d\002Jaguar-XMMS Now Playing Script v.%s\017\003%d]\003%d by \003%d\002 Jaguar\017 \003%dloaded successfully!", color_b2, color_title, PVERSION, color_b2, color_text, color_info, color_text);
+	xchat_print(ph, msg);
+	return 1;
+}
+
+
+void xchat_plugin_get_info(char **name, char **desc, char **version, void **reserved)
+{
+   *name = PNAME;
+   *desc = PDESC;
+   *version = PVERSION;
+}
 
 int main (void) {
 
@@ -31,22 +101,6 @@ int get_version(session) {
 	version = xmms_remote_get_version(session);
 	return version;
 }
-
-void play_pause(session) {
-	xmms_remote_play_pause(session);
-	return;
-}
-
-void xmms_next(session) {
-	xmms_remote_playlist_next(session);
-	return;
-}
-
-void xmms_prev(session) {
-	xmms_remote_playlist_prev(session);
-	return;
-}
-
 int get_song(void) {
 
 	int rate, nch, freq, vol;

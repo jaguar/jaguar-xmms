@@ -75,7 +75,6 @@ int display_song(int dsp_fn) {
 	int rate, nch, freq, vol;
 	struct stat;
 	int session=0;
-	char * pch;
 	char ratestr[200];
 	char song_path[300];
 	char song_name[300];
@@ -100,15 +99,14 @@ int display_song(int dsp_fn) {
 
 	char msg[1024];
 
+	/* Search in reverse for / */	
 	song_filename = strrchr(song_path,'/') +1;
 	format = strrchr(song_filename, '.')+1;
 	sprintf(formatstr, " [%s]", format);
 
 	if (dsp_fn) {
-		/* Search in reverse for / */	
-		pch=strrchr(song_path,'/') +1;
-		if (pch) {
-			sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", pch, ratestr,freqhz,song_time,song_position+1,playlist_length);
+		if (song_filename) {
+			sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_filename, ratestr,freqhz,song_time,song_position+1,playlist_length);
 		}
 	}
 	else {

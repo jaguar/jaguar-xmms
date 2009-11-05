@@ -5,6 +5,8 @@
 #include <strings.h>
 #include <string.h>
 #include <sys/stat.h> 
+#include <stdlib.h>
+#include <ctype.h>
 
 int get_song();
 int get_version();
@@ -14,6 +16,8 @@ int session = 0;
 char* convert_rate(int rate, char* ratestr);
 char* convert_time(int session, int pos, char* timestr); 
 char* convert_milliseconds(int time, char* timestr); 
+int display_song(int dsp_fn);
+void upstr(char *s);
 
 static xchat_plugin *ph;   /* plugin handle */
 
@@ -56,20 +60,32 @@ int xmms_prev(char *word[], char *word_eol[], void *userdata) {
 	return XCHAT_EAT_ALL;
 }
 
+int get_song_fn(char *word[], char *word_eol[], void *userdata) {
+	display_song(1);
+	return XCHAT_EAT_ALL;
+}
 int get_song(char *word[], char *word_eol[], void *userdata) {
+	display_song(0);
+	return XCHAT_EAT_ALL;
+}
+
+int display_song(int dsp_fn) {
 	IS_XMMS_RUNNING()
 
 	int rate, nch, freq, vol;
 	struct stat;
 	int session=0;
+	char * pch;
 	char ratestr[200];
-	char song_filename[300];
+	char song_path[300];
 	char song_name[300];
+	char * song_filename;
+	char * format;
+	char formatstr[25];
 	char song_time[100];
 	char freqhz[100];
 	int song_position = xmms_remote_get_playlist_pos(session);
 	int playlist_length = xmms_remote_get_playlist_length(session);
-
 	/* grab the bitrate, freq and number of channels */
 	xmms_remote_get_info(session, &rate, &freq, &nch);
 	
@@ -78,13 +94,27 @@ int get_song(char *word[], char *word_eol[], void *userdata) {
 	convert_rate(rate, ratestr);
 	convert_time(session, song_position, song_time);
 
-	sprintf(song_filename, "%s", xmms_remote_get_playlist_file(session, song_position));
+	sprintf(song_path, "%s", xmms_remote_get_playlist_file(session, song_position));
 	sprintf(song_name, "%s",xmms_remote_get_playlist_title(session, xmms_remote_get_playlist_pos(session))); 	
 	sprintf(freqhz, "%02d.%.01d", freq / 1000, freq % 1000);
 
 	char msg[1024];
-	sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_name, ratestr,freqhz,song_time,song_position+1,playlist_length);
 
+	song_filename = strrchr(song_path,'/') +1;
+	format = strrchr(song_filename, '.')+1;
+	sprintf(formatstr, " [%s]", format);
+
+	if (dsp_fn) {
+		/* Search in reverse for / */	
+		pch=strrchr(song_path,'/') +1;
+		if (pch) {
+			sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", pch, ratestr,freqhz,song_time,song_position+1,playlist_length);
+		}
+	}
+	else {
+		sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_name, ratestr,freqhz,song_time,song_position+1,playlist_length);
+	}
+	strcat(msg, formatstr);
 	xchat_command(ph,msg);		
 
 	return XCHAT_EAT_ALL;
@@ -104,6 +134,7 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 	*plugin_version = PVERSION;
 
 	xchat_hook_command(ph, "xmms", XCHAT_PRI_NORM, get_song,"Usage: xmms - Displays song information as a /ME ", 0);
+	xchat_hook_command(ph, "xmmsfn", XCHAT_PRI_NORM, get_song_fn,"Usage: xmms - Displays song information as a /ME ", 0);
 	xchat_hook_command(ph, "xmms-playpause", XCHAT_PRI_NORM, play_pause, "Usage: xmms-playpause - Plays or pauses Xmms", 0);
 	xchat_hook_command(ph, "xmms-next", XCHAT_PRI_NORM, xmms_next, "Usage: xmms-next - Moves to the next song", 0);
 	xchat_hook_command(ph, "xmms-prev", XCHAT_PRI_NORM, xmms_prev, "Usage: xmms-prev - Moves to the previous song", 0);
@@ -160,4 +191,10 @@ char* convert_milliseconds(int time, char* timestr) {
 	return timestr;
 }
 
-	
+void upstr(char *s)
+{
+  char  *p;
+
+  for (p = s; *p != '\0'; p++) 
+    *p = (char) toupper(*p);
+}

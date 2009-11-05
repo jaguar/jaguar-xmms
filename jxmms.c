@@ -17,7 +17,6 @@ char* convert_rate(int rate, char* ratestr);
 char* convert_time(int session, int pos, char* timestr); 
 char* convert_milliseconds(int time, char* timestr); 
 int display_song(int dsp_fn);
-void upstr(char *s);
 
 static xchat_plugin *ph;   /* plugin handle */
 
@@ -80,6 +79,7 @@ int display_song(int dsp_fn) {
 	char song_name[300];
 	char * song_filename;
 	char * format;
+	char * pch;
 	char formatstr[25];
 	char song_time[100];
 	char freqhz[100];
@@ -98,12 +98,15 @@ int display_song(int dsp_fn) {
 	sprintf(freqhz, "%02d.%.01d", freq / 1000, freq % 1000);
 
 	char msg[1024];
-
 	/* Search in reverse for / */	
 	song_filename = strrchr(song_path,'/') +1;
 	format = strrchr(song_filename, '.')+1;
 	sprintf(formatstr, " [%s]", format);
 
+	/* Clear the extension from the song_filename */
+	pch = strstr(song_filename, format) -1;
+	strncpy(pch, "", strlen(format));
+	
 	if (dsp_fn) {
 		if (song_filename) {
 			sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_filename, ratestr,freqhz,song_time,song_position+1,playlist_length);
@@ -187,12 +190,4 @@ char* convert_milliseconds(int time, char* timestr) {
 	}
 
 	return timestr;
-}
-
-void upstr(char *s)
-{
-  char  *p;
-
-  for (p = s; *p != '\0'; p++) 
-    *p = (char) toupper(*p);
 }

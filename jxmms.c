@@ -22,7 +22,7 @@ static xchat_plugin *ph;   /* plugin handle */
 
 #define PNAME "jaguar-xmms"
 #define PDESC "XMMS Now Playing Script"
-#define PVERSION "0.1"
+#define PVERSION "0.2"
 
 #define IS_XMMS_RUNNING() \
 	if (!xmms_remote_is_running(session)) { \
@@ -72,19 +72,20 @@ int display_song(int dsp_fn) {
 	IS_XMMS_RUNNING()
 
 	int rate, nch, freq, vol;
-	struct stat;
 	int session=0;
 	char ratestr[200];
-	char song_path[300];
-	char song_name[300];
-	char * song_filename;
-	char * format;
+	char song_name[1024];
+	char song_filename[1024];
 	char * pch;
 	char formatstr[25];
 	char song_time[100];
 	char freqhz[100];
 	int song_position = xmms_remote_get_playlist_pos(session);
 	int playlist_length = xmms_remote_get_playlist_length(session);
+
+	char * filename;
+	char * format;
+
 	/* grab the bitrate, freq and number of channels */
 	xmms_remote_get_info(session, &rate, &freq, &nch);
 	
@@ -93,24 +94,32 @@ int display_song(int dsp_fn) {
 	convert_rate(rate, ratestr);
 	convert_time(session, song_position, song_time);
 
-	sprintf(song_path, "%s", xmms_remote_get_playlist_file(session, song_position));
+	sprintf(song_filename, "%s", xmms_remote_get_playlist_file(session, song_position));
 	sprintf(song_name, "%s",xmms_remote_get_playlist_title(session, xmms_remote_get_playlist_pos(session))); 	
 	sprintf(freqhz, "%02d.%.01d", freq / 1000, freq % 1000);
 
 	char msg[1024];
-	/* Search in reverse for / */	
-	song_filename = strrchr(song_path,'/') +1;
-	format = strrchr(song_filename, '.')+1;
-	sprintf(formatstr, " [%s]", format);
 
-	/* Clear the extension from the song_filename */
-	pch = strstr(song_filename, format) -1;
-	strncpy(pch, "", strlen(format));
-	
+	if(strstr(song_filename, "http") == NULL) {
+		/* Search in reverse for / */	
+		filename = strrchr(song_filename,'/') +1;
+		strcpy(song_filename, filename);
+		format = strrchr(song_filename, '.')+1;
+		sprintf(formatstr, " [%s]", strrchr(song_filename, '.')+1);
+
+		/* Clear the extension from the song_filename */
+		pch = strstr(song_filename, format) -1;
+		strncpy(pch, "", strlen(format));
+	}
+	else {
+		strcpy(song_filename, song_name);
+		sprintf(formatstr," [stream]");
+
+	}	
+
+
 	if (dsp_fn) {
-		if (song_filename) {
-			sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_filename, ratestr,freqhz,song_time,song_position+1,playlist_length);
-		}
+		sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_filename, ratestr,freqhz,song_time,song_position+1,playlist_length);
 	}
 	else {
 		sprintf(msg, "ME playing: %s (%s) (%s kHz) %s (%i/%i)", song_name, ratestr,freqhz,song_time,song_position+1,playlist_length);

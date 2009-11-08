@@ -7,6 +7,9 @@
 #include <sys/stat.h> 
 #include <stdlib.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <libnotify/notify.h>
+
 
 int get_song();
 int get_version();
@@ -17,6 +20,8 @@ char* convert_rate(int rate, char* ratestr);
 char* convert_time(int session, int pos, char* timestr); 
 char* convert_milliseconds(int time, char* timestr); 
 int display_song(int dsp_fn);
+int notify(char *title, char *message);
+int notify_song();
 
 static xchat_plugin *ph;   /* plugin handle */
 
@@ -50,12 +55,14 @@ int play_pause(char *word[], char *word_eol[], void *userdata) {
 int xmms_next(char *word[], char *word_eol[], void *userdata) {
 	IS_XMMS_RUNNING()
 	xmms_remote_playlist_next(session);
+	notify_song();
 	return XCHAT_EAT_ALL;
 }
 
 int xmms_prev(char *word[], char *word_eol[], void *userdata) {
 	IS_XMMS_RUNNING()
 	xmms_remote_playlist_prev(session);
+	notify_song();
 	return XCHAT_EAT_ALL;
 }
 
@@ -199,4 +206,52 @@ char* convert_milliseconds(int time, char* timestr) {
 	}
 
 	return timestr;
+}
+
+int notify_song() {
+
+	char song_name[1024];
+	usleep(50000);
+	sprintf(song_name, "%s",xmms_remote_get_playlist_title(session, xmms_remote_get_playlist_pos(session))); 	
+	notify("Playing", song_name);
+	
+	return 0;
+}
+void closed_handler (NotifyNotification* notification, gpointer data){
+    g_print ("closed_handler() called");
+    return;
+}
+
+
+int notify(char *title, char *message) {
+
+	NotifyNotification* notification;
+	gboolean            success;
+	GError*             error = NULL;
+
+	char msg[100];
+
+	if (strlen(title) < 2 || strlen(message) < 2) {
+		return 1;
+	}
+
+	if (!notify_init ("icon-summary-body")){
+	return 1;
+	}
+
+	notification = notify_notification_new (title,message,"notification-audio-play",NULL);
+	error = NULL;
+	notify_notification_set_hint_string (notification,"append","allowed");
+
+	success = notify_notification_show (notification, &error);
+	if (!success) {
+		sprintf(msg, "Error display notification bubble: %s", error->message);
+		xchat_print(ph, msg);
+		return 1;
+	}
+
+	g_signal_connect (G_OBJECT (notification),"closed",G_CALLBACK (closed_handler),NULL);
+	notify_uninit ();
+
+	return 0;
 }

@@ -19,6 +19,7 @@ int session = 0;
 char* convert_rate(int rate, char* ratestr);
 char* convert_time(int session, int pos, char* timestr); 
 char* convert_milliseconds(int time, char* timestr); 
+
 int display_song(int dsp_fn);
 int notify(char *title, char *message);
 int notify_song();
@@ -44,7 +45,7 @@ int color_text = 0;
 int color_bar1 = 0;
 int color_bar2 = 4;
 int color_bar3 = 0;
-
+int notify_disable = 0;
 
 int play_pause(char *word[], char *word_eol[], void *userdata) {
 	IS_XMMS_RUNNING()
@@ -55,14 +56,16 @@ int play_pause(char *word[], char *word_eol[], void *userdata) {
 int xmms_next(char *word[], char *word_eol[], void *userdata) {
 	IS_XMMS_RUNNING()
 	xmms_remote_playlist_next(session);
-	notify_song();
+	if(notify_disable) 
+		notify_song();
 	return XCHAT_EAT_ALL;
 }
 
 int xmms_prev(char *word[], char *word_eol[], void *userdata) {
 	IS_XMMS_RUNNING()
 	xmms_remote_playlist_prev(session);
-	notify_song();
+	if(notify_disable) 
+		notify_song();
 	return XCHAT_EAT_ALL;
 }
 
@@ -72,6 +75,14 @@ int get_song_fn(char *word[], char *word_eol[], void *userdata) {
 }
 int get_song(char *word[], char *word_eol[], void *userdata) {
 	display_song(0);
+	return XCHAT_EAT_ALL;
+}
+
+int xmms_notifytoggle(char *word[], char *word_eol[], void *userdata) {
+	char msg[1024];
+	notify_disable ^= 1;
+	sprintf(msg, "Notify bubbles now: %d (0=disable, 1=enabled)", notify_disable);
+	xchat_print(ph, msg);
 	return XCHAT_EAT_ALL;
 }
 
@@ -155,6 +166,7 @@ int xchat_plugin_init(xchat_plugin *plugin_handle,
 	xchat_hook_command(ph, "xmms-playpause", XCHAT_PRI_NORM, play_pause, "Usage: xmms-playpause - Plays or pauses Xmms", 0);
 	xchat_hook_command(ph, "xmms-next", XCHAT_PRI_NORM, xmms_next, "Usage: xmms-next - Moves to the next song", 0);
 	xchat_hook_command(ph, "xmms-prev", XCHAT_PRI_NORM, xmms_prev, "Usage: xmms-prev - Moves to the previous song", 0);
+	xchat_hook_command(ph, "xmms-notify", XCHAT_PRI_NORM, xmms_notifytoggle, "Toggles notify bubbles", 0);
 	
 	char msg[200];
 	sprintf(msg, "\003%d[\003%d\002Jaguar-XMMS Now Playing Script v.%s\017\003%d]\003%d by \003%d\002 Jaguar\017 \003%dloaded successfully!", color_b2, color_title, PVERSION, color_b2, color_text, color_info, color_text);
@@ -217,41 +229,20 @@ int notify_song() {
 	
 	return 0;
 }
-void closed_handler (NotifyNotification* notification, gpointer data){
-    g_print ("closed_handler() called");
-    return;
-}
 
 
 int notify(char *title, char *message) {
 
-	NotifyNotification* notification;
-	gboolean            success;
-	GError*             error = NULL;
+        NotifyNotification *n;
+        notify_init("jaguar-xmms");
+        n = notify_notification_new (title,message, NULL, NULL);
+        notify_notification_set_timeout(n, 3000); //3 seconds
 
-	char msg[100];
-
-	if (strlen(title) < 2 || strlen(message) < 2) {
-		return 1;
-	}
-
-	if (!notify_init ("icon-summary-body")){
-	return 1;
-	}
-
-	notification = notify_notification_new (title,message,"notification-audio-play",NULL);
-	error = NULL;
-	notify_notification_set_hint_string (notification,"append","allowed");
-
-	success = notify_notification_show (notification, &error);
-	if (!success) {
-		sprintf(msg, "Error display notification bubble: %s", error->message);
-		xchat_print(ph, msg);
-		return 1;
-	}
-
-	g_signal_connect (G_OBJECT (notification),"closed",G_CALLBACK (closed_handler),NULL);
-	notify_uninit ();
-
+        if (!notify_notification_show (n, NULL)) {
+            g_error("Failed to send notification.\n");
+            return 1;
+        }
+        g_object_unref(G_OBJECT(n));
 	return 0;
 }
+

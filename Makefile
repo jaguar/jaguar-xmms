@@ -1,5 +1,5 @@
 jxmms:
-	gcc -Wall -o jxmms.so -shared -O1 `pkg-config --cflags glib-2.0` `pkg-config --cflags --libs gtk+-2.0` `gtk-config --cflags` `glib-config --cflags` -I/usr/include/xmms/ -lnotify -lxmms -lpthread jxmms.c -fPIC
+	gcc -Wall -o jxmms.so -shared -O1 `pkg-config --cflags --libs gtk+-2.0` -I/usr/include/xmms/ -lnotify -lxmms jxmms.c -fPIC
 
 install: 
 	cp jxmms.so ${HOME}/.xchat2/
